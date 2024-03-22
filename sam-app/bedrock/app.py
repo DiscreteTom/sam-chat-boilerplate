@@ -28,7 +28,7 @@ def handler(event, context):
     domain = event["requestContext"]["domainName"]
     stage = event["requestContext"]["stage"]
     connection_id = event["requestContext"]["connectionId"]
-    body = json.loads(event["body"])
+    body = event["body"]
 
     apigw = session.client(
         "apigatewaymanagementapi",

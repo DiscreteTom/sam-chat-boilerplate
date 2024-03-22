@@ -22,7 +22,7 @@ def chat(
     domain = event["requestContext"]["domainName"]
     stage = event["requestContext"]["stage"]
     connection_id = event["requestContext"]["connectionId"]
-    body = json.loads(event["body"])
+    body = event["body"]
 
     # set callback handler
     # so that every time the model generates a chunk of response,
