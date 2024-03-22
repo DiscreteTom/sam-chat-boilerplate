@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.1.3
+
+Fix: `body` in `AsyncLambdaIntegrationRequestTemplates` should be `$input.body` so we don't need to escape anything, and quotes in the input will work nicely.
+
 ## v0.1.2
 
 Fix: the default route should have a route response instead of an integration response.
