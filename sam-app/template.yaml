@@ -85,12 +85,15 @@ Resources:
       RequestTemplates:
         # see https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api-mapping-template-reference.html
         &AsyncLambdaIntegrationRequestTemplates
-        application/json: !ToJsonString
-          requestContext:
-            domainName: $context.domainName
-            stage: $context.stage
-            connectionId: $context.connectionId
-          body: $input.body.replaceAll('"', '\"')
+        application/json: |
+          {
+            "requestContext": {
+              "domainName": "$context.domainName",
+              "stage": "$context.stage",
+              "connectionId": "$context.connectionId"
+            },
+            "body": $input.body
+          }
   LangChainBedrockFunction:
     Type: AWS::Serverless::Function
     Properties:
