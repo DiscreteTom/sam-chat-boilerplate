@@ -40,8 +40,8 @@ Resources:
       - LangChainSageMakerRoute
       - LangChainOpenAIRoute
       - BedrockClaude2StreamRoute
-      - BedrockClaude3SonnetStreamRoute
-      - BedrockClaude3HaikuStreamRoute
+      - BedrockSonnetStreamRoute
+      - BedrockHaikuStreamRoute
       - OnConnectRoute
       - OnDefaultRoute
       - OnDisconnectRoute
