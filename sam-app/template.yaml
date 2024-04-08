@@ -278,8 +278,8 @@ Resources:
       FunctionName: !Ref BedrockFunction
       Principal: apigateway.amazonaws.com
 
-#bedrock/haikustream
-BedrockHaikuStreamRoute:
+  #bedrock/haikustream
+  BedrockHaikuStreamRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref WebSocketAPI
