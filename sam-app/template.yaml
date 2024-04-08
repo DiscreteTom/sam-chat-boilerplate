@@ -39,7 +39,9 @@ Resources:
       - LangChainBedrockRoute
       - LangChainSageMakerRoute
       - LangChainOpenAIRoute
-      - BedrockRoute
+      - BedrockClaude2StreamRoute
+      - BedrockClaude3SonnetStreamRoute
+      - BedrockClaude3HaikuStreamRoute
       - OnConnectRoute
       - OnDefaultRoute
       - OnDisconnectRoute
@@ -223,12 +225,12 @@ Resources:
       FunctionName: !Ref LangChainSageMakerFunction
       Principal: apigateway.amazonaws.com
 
-  # bedrock
-  BedrockRoute:
+  # bedrock/claude2stream
+  BedrockClaude2StreamRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref WebSocketAPI
-      RouteKey: bedrock
+      RouteKey: bedrock/claude2stream
       AuthorizationType: NONE
       Target: !Join
         - "/"
@@ -247,7 +249,113 @@ Resources:
   BedrockFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: bedrock/
+      CodeUri: bedrock/claude2_stream
+      Environment:
+        Variables:
+          SessionTableName: !Ref SessionTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketAPI}/*"
+            - Effect: Allow
+              Action:
+                - "bedrock:InvokeModel"
+                - "bedrock:InvokeModelWithResponseStream"
+              Resource:
+                - "arn:aws:bedrock:*::foundation-model/*"
+  BedrockPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketAPI
+      - SessionTable
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BedrockFunction
+      Principal: apigateway.amazonaws.com
+
+#bedrock/haikustream
+BedrockHaikuStreamRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: bedrock/haikustream
+      AuthorizationType: NONE
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref BedrockIntegration
+  BedrockIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS
+      IntegrationUri:
+        # see https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BedrockFunction.Arn}/invocations
+      RequestParameters: *AsyncLambdaIntegrationRequestParameters
+      RequestTemplates: *AsyncLambdaIntegrationRequestTemplates
+  BedrockFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bedrock/haiku_stream
+      Environment:
+        Variables:
+          SessionTableName: !Ref SessionTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketAPI}/*"
+            - Effect: Allow
+              Action:
+                - "bedrock:InvokeModel"
+                - "bedrock:InvokeModelWithResponseStream"
+              Resource:
+                - "arn:aws:bedrock:*::foundation-model/*"
+  BedrockPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketAPI
+      - SessionTable
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BedrockFunction
+      Principal: apigateway.amazonaws.com
+
+  #bedrock/sonnetstream
+  BedrockSonnetStreamRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: bedrock/sonnetstream
+      AuthorizationType: NONE
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref BedrockIntegration
+  BedrockIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS
+      IntegrationUri:
+        # see https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BedrockFunction.Arn}/invocations
+      RequestParameters: *AsyncLambdaIntegrationRequestParameters
+      RequestTemplates: *AsyncLambdaIntegrationRequestTemplates
+  BedrockFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bedrock/sonnet_stream
       Environment:
         Variables:
           SessionTableName: !Ref SessionTable
