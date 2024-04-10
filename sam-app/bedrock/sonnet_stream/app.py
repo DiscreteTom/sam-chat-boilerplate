@@ -26,21 +26,8 @@ def handler(event, context):
     domain = event["requestContext"]["domainName"]
     stage = event["requestContext"]["stage"]
     connection_id = event["requestContext"]["connectionId"]
-    body_str = event["body"]
-    if not body_str:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "Invalid request payload"}),
-        }
-
-    try:
-        # 将请求体字符串解析为 JSON 对象
-        body = json.loads(body_str)
-    except json.JSONDecodeError:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "Invalid JSON payload"}),
-        }
+    body = event["body"]
+    
 
     # 检查请求体是否包含所需的字段
     if "action" not in body or "input" not in body:
@@ -67,21 +54,16 @@ def handler(event, context):
 
     # invoke bedrock
     history_str = "\n".join(
-        map(
-            lambda h: f"{ai_prefix}: {h['content']}"
-            if h["type"] == "ai"
-            else f"Human: {h['content']}",
-            history,
-        )
+        [f"{ai_prefix}: {h['content']}" if h["type"] == "ai" else f"Human: {h['content']}" for h in history]
     )
-    history=history_str
+
     input=body["input"]
 
     prompt = f"""You are an AI chatbot who is talkative and friendly.
         If you does not know the answer to a question, it truthfully says don't know.
         Current conversation:
         <conversation_history>
-        {history}
+        {history_str}
         </conversation_history>
         Then provide answer for {input}
         """
@@ -107,9 +89,33 @@ def handler(event, context):
     )
 
     # stream response to client
+    stream = res.get('body')
+    if stream:
+        for event in stream:
+            chunk = event.get('chunk')
+            if chunk:
+                message = json.loads(chunk.get("bytes").decode())
+                
+                if message['type'] == "content_block_delta":
+                    generated_text = message['delta']['text'] or ""
+                    history[-1]["content"] += generated_text
+                    apigw.post_to_connection(
+                        ConnectionId=connection_id,
+                        Data=json.dumps({"kind": "token", "chunk": generated_text}),
+                    )
+                elif message['type'] == "content_block_stop":
+                    generated_text = "\n"
+                    history[-1]["content"] += generated_text
+                    apigw.post_to_connection(
+                        ConnectionId=connection_id,
+                        Data=json.dumps({"kind": "token", "chunk": generated_text}),
+                    )
+    '''
     for data in res["body"]:
         # print(json.dumps(data))
-        completion = json.loads(data["chunk"]["bytes"])["completion"]
+        chunk_obj = json.loads(data["chunk"]["bytes"].decode())
+        completion = chunk_obj['delta']['text']
+
         history[-1]["content"] += completion
         apigw.post_to_connection(
             ConnectionId=connection_id,
@@ -119,6 +125,7 @@ def handler(event, context):
         ConnectionId=connection_id,
         Data=json.dumps({"kind": "end"}),
     )
+    '''
 
     # write history to ddb
     table.put_item(Item={"SessionId": connection_id, "History": history})

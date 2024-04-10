@@ -3,17 +3,20 @@ import os
 import boto3
 
 # environment variables
-model_id = os.environ.get("ModelId", "anthropic.claude-v2:1")
+model_id = os.environ.get("ModelId", "mistral.mistral-large-2402-v1:0")
+
 session_table_name = os.environ["SessionTableName"]
+
 ai_prefix = os.environ.get(
     "AI_Prefix",
     # by default (Claude), this is "Assistant"
     "Assistant",
 )
+
 prompt_template = os.environ.get(
     "PromptTemplate",
     # by default (Claude)
-    "\\n{history}\\n\\nHuman: {input}\\n\\nAssistant:\\n",
+    "\\n<s>[INST] {input} [/INST]\\n",
 ).replace("\\n", "\n")
 
 # init clients outside of handler
@@ -58,30 +61,29 @@ def handler(event, context):
     )
     prompt = prompt_template.format(history=history_str, input=body["input"])
     print(f"prompt:\n{prompt}")
-    res = bedrock.invoke_model_with_response_stream(
+    res = bedrock.invoke_model(
         modelId=model_id,
-        body=json.dumps(
-            {
-                "prompt": prompt,
-                "max_tokens_to_sample": 300,
-                "temperature": 0.5,
-                "top_k": 250,
-                "top_p": 1,
-                "stop_sequences": ["\n\nHuman:"],
-                "anthropic_version": "bedrock-2023-05-31",
-            }
-        ),
+        body=json.dumps({
+            "prompt": prompt,
+            "max_tokens": 4000,
+            "temperature": 0.2,
+            "top_p": 0.7,
+            "top_k": 50
+        })
     )
 
-    # stream response to client
-    for data in res["body"]:
-        # print(json.dumps(data))
-        completion = json.loads(data["chunk"]["bytes"])["completion"]
-        history[-1]["content"] += completion
+    response_body = json.loads(res.get('body').read())
+    outputs = response_body.get('outputs')
+    
+    for index, output in enumerate(outputs):
+        outtext = output['text']
+        history[-1]["content"] += outtext
         apigw.post_to_connection(
             ConnectionId=connection_id,
-            Data=json.dumps({"kind": "token", "chunk": completion}),
+            Data=json.dumps({"kind": "output", "chunk": outtext}),
         )
+
+
     apigw.post_to_connection(
         ConnectionId=connection_id,
         Data=json.dumps({"kind": "end"}),
