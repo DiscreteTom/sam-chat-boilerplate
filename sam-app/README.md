@@ -43,11 +43,14 @@ sam build
 
 # Deploy the whole application
 sam deploy --guided
+# or use this follow command,modify with your own region and bucket name
+# sam deploy --stack-name serverlesschat --region us-east-1  --s3-bucket yourbucketname --capabilities CAPABILITY_NAMED_IAM
 ```
 
 ### Re-Deploy WebSocket API
 
-After you made changes and use `sam deploy` to update the CloudFormation stack, you may need to re-deploy the WebSocket API manually. You can do this in the AWS console, or use AWS [CLI](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/apigatewayv2/create-deployment.html) / SDK to do it.
+After you made changes and use `sam deploy` to update the CloudFormation stack, if you modify the template.yaml, you need to `sam build` first.
+You may need to re-deploy the WebSocket API manually. You can do this in the AWS console, or use AWS [CLI](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/apigatewayv2/create-deployment.html) / SDK to do it.
 
 If you want to automate this process, you can use [CloudFormation Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) to do it.
 
