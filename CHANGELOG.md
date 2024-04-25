@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.1.5
+
+Fix: don't ensure ASCII when dump JSON string.
+
 ## v0.1.4
 
 Fix: skip `json.loads` for `event['body']`.
