@@ -50,9 +50,11 @@ def handler(event, context):
     # invoke bedrock
     history_str = "\n".join(
         map(
-            lambda h: f"{ai_prefix}: {h['content']}"
-            if h["type"] == "ai"
-            else f"Human: {h['content']}",
+            lambda h: (
+                f"{ai_prefix}: {h['content']}"
+                if h["type"] == "ai"
+                else f"Human: {h['content']}"
+            ),
             history,
         )
     )
@@ -69,7 +71,8 @@ def handler(event, context):
                 "top_p": 1,
                 "stop_sequences": ["\n\nHuman:"],
                 "anthropic_version": "bedrock-2023-05-31",
-            }
+            },
+            ensure_ascii=False,
         ),
     )
 
@@ -80,7 +83,7 @@ def handler(event, context):
         history[-1]["content"] += completion
         apigw.post_to_connection(
             ConnectionId=connection_id,
-            Data=json.dumps({"kind": "token", "chunk": completion}),
+            Data=json.dumps({"kind": "token", "chunk": completion}, ensure_ascii=False),
         )
     apigw.post_to_connection(
         ConnectionId=connection_id,
